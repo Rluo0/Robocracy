@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Join ROBOT ROYALE</title>
+  <meta name="theme-color" content="#ffd23f">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="phone">
+    <div class="phone-top"><span class="brand" translate="no">ROBOT ROYALE</span></div>
+
+    <!-- Join form -->
+    <main id="form-screen" class="phone-main">
+      <h1>Enter the <em>arena</em></h1>
+      <form id="join-form" class="phone-main" style="padding: 0; gap: 20px" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="code">Room code</label>
+          <input id="code" name="room" class="code-input" autocomplete="off" maxlength="4" required autocapitalize="characters" inputmode="text" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="name">Your name</label>
+          <input id="name" name="nickname" maxlength="16" required placeholder="Sparky…" autocomplete="nickname">
+        </div>
+        <div class="field">
+          <label for="pick">What are you fighting for?</label>
+          <input id="pick" name="pick" maxlength="32" required placeholder="Pizza…" autocomplete="off" aria-describedby="pick-help">
+          <span class="help" id="pick-help">Your robot carries this into battle.</span>
+        </div>
+        <p id="form-error" class="error hidden" role="alert"></p>
+        <button class="btn mega" type="submit" id="join-btn" style="font-size: 26px"><i class="ph-fill ph-lightning" aria-hidden="true"></i>FIGHT</button>
+      </form>
+    </main>
+
+    <!-- Status after joining -->
+    <main id="status-screen" class="phone-main hidden">
+      <div class="status">
+        <div class="stage" id="stage"></div>
+        <h1 id="status-title">You're in!</h1>
+        <p class="status-text" id="status-text" aria-live="polite">Eyes on the big screen.</p>
+        <div class="me-tag" id="me">
+          <span class="name" id="me-name"></span>
+          <span class="pick" id="me-pick"></span>
+        </div>
+        <button class="btn dark" id="leave"><i class="ph-bold ph-sign-out" aria-hidden="true"></i>Leave</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/fx.js"></script>
+  <script src="/js/sfx.js"></script>
+  <script src="/js/join.js"></script>
+</body>
+</html>
