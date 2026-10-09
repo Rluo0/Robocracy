@@ -6,8 +6,196 @@ const TAU = Math.PI * 2;
 const DEBRIS = { [WALL]: '#8b93a7', [CRATE]: '#c08a4a', [BARREL]: '#e2553f' };
 const SHOT = { blaster: '#fde047', scatter: '#fdba74', rocket: '#f87171' };
 
-// Shared with the setup screen so the preview matches what fights.
-// b: { color, teamColor, chassis, weapon }
+export const EYES = {
+  mono: { label: 'Cyclops' }, twin: { label: 'Twin' }, visor: { label: 'Visor' }, angry: { label: 'Angry' }, googly: { label: 'Googly' },
+};
+export const HATS = {
+  none: { label: 'None' }, antenna: { label: 'Antenna' }, mohawk: { label: 'Mohawk' }, crown: { label: 'Crown' },
+  horns: { label: 'Horns' }, propeller: { label: 'Propeller' }, tophat: { label: 'Top hat' },
+};
+export const PATTERNS = {
+  plain: { label: 'Plain' }, stripes: { label: 'Stripes' }, hazard: { label: 'Hazard' }, spots: { label: 'Spots' }, split: { label: 'Split' },
+};
+const known = (cat, k) => (cat[k] ? k : Object.keys(cat)[0]);
+
+function bodyPath(ctx, chassis, r) {
+  ctx.beginPath();
+  if (chassis === 'tank') ctx.rect(-r * 0.85, -r * 0.72, r * 1.7, r * 1.44);
+  else if (chassis === 'scout') {
+    ctx.moveTo(r * 1.1, 0);
+    ctx.lineTo(-r * 0.85, r * 0.9);
+    ctx.lineTo(-r * 0.4, 0);
+    ctx.lineTo(-r * 0.85, -r * 0.9);
+    ctx.closePath();
+  } else {
+    for (let i = 0; i < 6; i++) ctx.lineTo(Math.cos((i / 6) * TAU) * r, Math.sin((i / 6) * TAU) * r);
+    ctx.closePath();
+  }
+}
+
+function drawPattern(ctx, kind, r, color) {
+  ctx.fillStyle = color;
+  if (kind === 'stripes') {
+    for (const s of [-1, 1]) ctx.fillRect(-r * 1.2, s * r * 0.32 - r * 0.08, r * 2.4, r * 0.16);
+  } else if (kind === 'hazard') {
+    ctx.rotate(Math.PI / 4);
+    for (let k = -4; k <= 3; k++) ctx.fillRect(k * r * 0.5, -r * 2, r * 0.25, r * 4);
+  } else if (kind === 'spots') {
+    for (const [px, py, pr] of [[0.45, -0.4, 0.2], [0.5, 0.42, 0.16], [-0.3, -0.45, 0.17], [-0.35, 0.4, 0.21], [-0.75, 0, 0.13]]) {
+      ctx.beginPath();
+      ctx.arc(px * r, py * r, pr * r, 0, TAU);
+      ctx.fill();
+    }
+  } else if (kind === 'split') ctx.fillRect(-r * 1.2, 0, r * 2.4, r * 1.2);
+}
+
+function drawEyes(ctx, kind, r, time) {
+  const eye = (x, y, er) => {
+    ctx.beginPath();
+    ctx.arc(x, y, er, 0, TAU);
+    ctx.fillStyle = '#0b0d12';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + er * 0.3, y, er * 0.48, 0, TAU);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  };
+  if (kind === 'twin' || kind === 'angry') {
+    eye(r * 0.12, -r * 0.3, r * 0.23);
+    eye(r * 0.12, r * 0.3, r * 0.23);
+    if (kind === 'angry') {
+      ctx.strokeStyle = '#0b0d12';
+      ctx.lineWidth = Math.max(1, r * 0.12);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const s of [-1, 1]) {
+        ctx.moveTo(r * -0.2, s * r * 0.62);
+        ctx.lineTo(r * 0.32, s * r * 0.12);
+      }
+      ctx.stroke();
+    }
+  } else if (kind === 'visor') {
+    ctx.fillStyle = '#0b0d12';
+    ctx.fillRect(r * 0.02, -r * 0.5, r * 0.4, r);
+    ctx.fillStyle = '#22d3ee';
+    ctx.fillRect(r * 0.1, -r * 0.42, r * 0.24, r * 0.84);
+    ctx.fillStyle = '#a5f3fc';
+    ctx.fillRect(r * 0.1, -r * 0.42, r * 0.08, r * 0.84);
+  } else if (kind === 'googly') {
+    for (const [i, s] of [-1, 1].entries()) {
+      const ex = r * 0.14, ey = s * r * 0.32, er = r * 0.28;
+      ctx.beginPath();
+      ctx.arc(ex, ey, er, 0, TAU);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, r * 0.06);
+      ctx.strokeStyle = '#0b0d12';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(ex + Math.cos(time * 9 + i * 2.1) * er * 0.38, ey + Math.sin(time * 11 + i * 1.3) * er * 0.38, er * 0.38, 0, TAU);
+      ctx.fillStyle = '#0b0d12';
+      ctx.fill();
+    }
+  } else eye(0, 0, r * 0.34);
+}
+
+function drawHat(ctx, kind, r, time) {
+  ctx.lineWidth = Math.max(1, r * 0.08);
+  ctx.strokeStyle = '#0b0d12';
+  if (kind === 'antenna') {
+    const bx = -r * 0.95 - Math.sin(time * 3) * r * 0.12, by = Math.cos(time * 2.3) * r * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.4, 0);
+    ctx.lineTo(bx, by);
+    ctx.strokeStyle = '#9aa3b8';
+    ctx.stroke();
+    ctx.globalAlpha = 0.35 + 0.2 * Math.sin(time * 6);
+    ctx.fillStyle = '#fde047';
+    ctx.beginPath();
+    ctx.arc(bx, by, r * 0.3, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(bx, by, r * 0.17, 0, TAU);
+    ctx.fill();
+  } else if (kind === 'mohawk') {
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.3, -r * 0.1);
+    for (let i = 0; i < 5; i++) {
+      ctx.lineTo(-r * (0.38 + i * 0.13), -r * 0.3);
+      ctx.lineTo(-r * (0.44 + i * 0.13), -r * 0.1);
+    }
+    for (let i = 4; i >= 0; i--) {
+      ctx.lineTo(-r * (0.44 + i * 0.13), r * 0.1);
+      ctx.lineTo(-r * (0.38 + i * 0.13), r * 0.3);
+    }
+    ctx.lineTo(-r * 0.3, r * 0.1);
+    ctx.closePath();
+    ctx.fillStyle = '#f472b6';
+    ctx.fill();
+    ctx.stroke();
+  } else if (kind === 'crown') {
+    ctx.fillStyle = '#facc15';
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * TAU;
+      ctx.beginPath();
+      ctx.arc(-r * 0.55 + Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36, r * 0.14, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(-r * 0.55, 0, r * 0.36, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-r * 0.55, 0, r * 0.14, 0, TAU);
+    ctx.fillStyle = '#ef4444';
+    ctx.fill();
+  } else if (kind === 'horns') {
+    ctx.fillStyle = '#f1e7d0';
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.05, s * r * 0.55);
+      ctx.quadraticCurveTo(-r * 0.2, s * r * 1.25, -r * 0.8, s * r * 1.2);
+      ctx.quadraticCurveTo(-r * 0.45, s * r * 0.95, -r * 0.4, s * r * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  } else if (kind === 'propeller') {
+    ctx.save();
+    ctx.translate(-r * 0.55, 0);
+    ctx.rotate(time * 18);
+    ctx.fillStyle = '#e5e7eb';
+    for (let i = 0; i < 2; i++) {
+      ctx.rotate(Math.PI);
+      ctx.beginPath();
+      ctx.ellipse(r * 0.3, 0, r * 0.3, r * 0.11, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.1, 0, TAU);
+    ctx.fillStyle = '#ef4444';
+    ctx.fill();
+    ctx.restore();
+  } else if (kind === 'tophat') {
+    ctx.beginPath();
+    ctx.arc(-r * 0.55, 0, r * 0.42, 0, TAU);
+    ctx.fillStyle = '#1b1d27';
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-r * 0.55, 0, r * 0.26, 0, TAU);
+    ctx.fillStyle = '#2a2e3b';
+    ctx.fill();
+    ctx.strokeStyle = '#ef4444';
+    ctx.stroke();
+  }
+}
+
+// Shared with the setup screen and garage so previews match what fights.
+// b: { color, teamColor, chassis, weapon, eyes?, hat?, pattern?, accent? }
 export function drawRobot(ctx, x, y, r, angle, b, time = 0) {
   ctx.save();
   ctx.translate(x, y);
@@ -22,24 +210,21 @@ export function drawRobot(ctx, x, y, r, angle, b, time = 0) {
 
   ctx.strokeStyle = '#0b0d12';
   ctx.lineWidth = 1.5;
-  ctx.beginPath();
   if (b.chassis === 'tank') {
     ctx.fillStyle = '#1f2430';
     ctx.fillRect(-r, -r, r * 2, r * 0.5);
     ctx.fillRect(-r, r * 0.5, r * 2, r * 0.5);
-    ctx.rect(-r * 0.85, -r * 0.72, r * 1.7, r * 1.44);
-  } else if (b.chassis === 'scout') {
-    ctx.moveTo(r * 1.1, 0);
-    ctx.lineTo(-r * 0.85, r * 0.9);
-    ctx.lineTo(-r * 0.4, 0);
-    ctx.lineTo(-r * 0.85, -r * 0.9);
-    ctx.closePath();
-  } else {
-    for (let i = 0; i < 6; i++) ctx.lineTo(Math.cos((i / 6) * TAU) * r, Math.sin((i / 6) * TAU) * r);
-    ctx.closePath();
   }
+  bodyPath(ctx, b.chassis, r);
   ctx.fillStyle = b.color;
   ctx.fill();
+  const pattern = known(PATTERNS, b.pattern);
+  if (pattern !== 'plain') {
+    ctx.save();
+    ctx.clip();
+    drawPattern(ctx, pattern, r, b.accent || '#0b0d12');
+    ctx.restore();
+  }
   ctx.stroke();
 
   ctx.fillStyle = '#d5dae6';
@@ -68,14 +253,8 @@ export function drawRobot(ctx, x, y, r, angle, b, time = 0) {
     ctx.translate(-r - 2, 0);
   }
 
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.34, 0, TAU);
-  ctx.fillStyle = '#0b0d12';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(r * 0.1, 0, r * 0.16, 0, TAU);
-  ctx.fillStyle = '#fff';
-  ctx.fill();
+  drawHat(ctx, known(HATS, b.hat), r, time);
+  drawEyes(ctx, known(EYES, b.eyes), r, time);
   ctx.restore();
 }
 
@@ -100,6 +279,24 @@ export function createRenderer(canvas, battle, { onEvent } = {}) {
 
   let time = 0, shake = 0, banner = null;
   const particles = [], rings = [], beams = [], floaters = [];
+  const bubbles = [], BUBBLE_LIFE = 1.8;
+
+  function say(id) {
+    const b = s.bots[id];
+    if (!b || !b.alive || !b.cry) return;
+    const old = bubbles.findIndex((x) => x.id === id);
+    if (old >= 0) bubbles.splice(old, 1);
+    while (bubbles.length >= 4) bubbles.shift();
+    bubbles.push({ id, life: BUBBLE_LIFE });
+  }
+  // One random talker per team just after FIGHT (sim time, so not during the countdown), staggered.
+  const intro = battle.teams
+    .map((t) => {
+      const talkers = s.bots.filter((b) => b.team === t.id && b.cry);
+      return talkers.length ? talkers[Math.floor(Math.random() * talkers.length)].id : -1;
+    })
+    .filter((id) => id >= 0)
+    .map((id, i) => ({ id, at: 0.4 + i * 0.35 + Math.random() * 0.2 }));
 
   function burst(x, y, n, color, speed, size = 3, life = 0.6) {
     for (let i = 0; i < n && particles.length < 900; i++) {
@@ -153,6 +350,7 @@ export function createRenderer(canvas, battle, { onEvent } = {}) {
         g.stroke();
         g.globalAlpha = 1;
         shake = Math.max(shake, 9);
+        if (e.killer >= 0) say(e.killer);
         break;
       }
       case 'pickup': {
@@ -334,6 +532,7 @@ export function createRenderer(canvas, battle, { onEvent } = {}) {
   function frame(dt) {
     time += dt;
     for (const e of s.events.splice(0)) on(e);
+    while (intro.length && s.t >= intro[0].at) say(intro.shift().id);
 
     shake *= Math.pow(0.002, dt);
     ctx.save();
@@ -404,6 +603,31 @@ export function createRenderer(canvas, battle, { onEvent } = {}) {
       ctx.strokeText(f.text, f.x, f.y);
       ctx.fillStyle = f.color;
       ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.font = '600 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const m = bubbles[i], b = s.bots[m.id];
+      if ((m.life -= dt) <= 0 || !b.alive) { bubbles.splice(i, 1); continue; }
+      const cry = b.cry.slice(0, 40), w = ctx.measureText(cry).width + 12, h = 17;
+      const bx = Math.max(4, Math.min(W - 4 - w, b.x - w / 2));
+      const by = Math.max(4, b.y - b.baseR * (b.fx.giant > 0 ? 1.6 : 1) - 9 - 4 - 14 - h);
+      ctx.globalAlpha = Math.min(1, m.life * 2.5);
+      ctx.fillStyle = 'rgba(11,13,18,0.92)';
+      ctx.strokeStyle = b.teamColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, w, h, 6);
+      ctx.moveTo(b.x - 4, by + h);
+      ctx.lineTo(b.x, by + h + 4);
+      ctx.lineTo(b.x + 4, by + h);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#f3f4f6';
+      ctx.fillText(cry, bx + w / 2, by + h / 2 + 0.5);
     }
     ctx.globalAlpha = 1;
     ctx.restore();

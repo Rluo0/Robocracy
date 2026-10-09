@@ -89,8 +89,7 @@ async function joinInfo(room) {
 }
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
-
-// Richard's fight simulator, loaded as ES modules by the battle screen (public/js/battle.js).
+// The battle simulator (game/) is a static ES-module app, loaded from /game by /host (public/js/battle.js) and /battle.
 app.use('/game', express.static(path.join(__dirname, 'game')));
 
 // Fonts and icons are served locally so the demo still looks right on venue Wi-Fi with no internet.

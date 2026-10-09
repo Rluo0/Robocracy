@@ -4,56 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ROBOT ROYALE Battle</title>
-  <meta name="theme-color" content="#141216">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/game/battle.css">
+  <style>
+    #problem { max-width: 520px; margin: 20vh auto; padding: 0 16px; text-align: center; }
+    #problem a { color: var(--accent); font-weight: 700; }
+  </style>
 </head>
 <body>
-  <!--
-    Standalone battle for a room: /battle?room=CODE.
-    The host lobby normally runs the battle in-page (host.js), which keeps sound unlocked.
-    This page needs one click first, because browsers block audio on a freshly loaded page.
-  -->
-  <main id="gate" class="center-screen">
-    <h2>Battle ready</h2>
-    <p class="muted" id="gate-text">Loading fighters…</p>
-    <button class="btn mega" id="go" disabled><i class="ph-fill ph-hand-fist" aria-hidden="true"></i>FIGHT!</button>
-  </main>
-  <div id="battle"></div>
+  <!-- The simulator lives in game/ (served at /game). Contract with the lobby: see LOBBY.md. -->
+  <div id="problem" hidden></div>
+
+  <section id="battle" hidden>
+    <aside id="side">
+      <h2 id="title"></h2>
+      <div id="controls">
+        <button data-speed="1" class="on">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+        <button id="skip" title="Skip to the result">⏭</button>
+        <button id="mute" title="Sound">🔊</button>
+        <button id="quit" title="Back to the lobby">✕</button>
+        <span id="clock"></span>
+      </div>
+      <div id="hud"></div>
+    </aside>
+    <div id="stage">
+      <div id="wrap">
+        <canvas id="arena"></canvas>
+        <div id="feed"></div>
+        <div id="announcer" hidden>
+          <div class="abot"><i></i><i></i><b></b></div>
+          <p id="say"></p>
+        </div>
+        <div id="count"></div>
+        <div id="result" hidden></div>
+      </div>
+    </div>
+  </section>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/fx.js"></script>
-  <script src="/js/sfx.js"></script>
-  <script type="module">
-    import { mountBattle } from '/js/battle.js';
-
-    const socket = io();
-    const code = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
-    const hostKey = sessionStorage.getItem(`rr-host-${code}`);
-    const $ = (id) => document.getElementById(id);
-
-    const res = await fetch(`/api/rooms/${code}`);
-    const room = res.ok ? await res.json() : null;
-    if (!room || room.players.length < 2) {
-      $('gate-text').textContent = room ? 'Need at least 2 fighters in this room.' : `Room ${code || '(none)'} not found.`;
-    } else {
-      $('gate-text').textContent = `${room.players.length} fighters in room ${room.code}.`;
-      $('go').disabled = false;
-    }
-
-    $('go').addEventListener('click', () => {
-      RR.sfx.unlock();
-      $('gate').classList.add('hidden');
-      const view = mountBattle($('battle'), {
-        room,
-        onResult: (winner) => hostKey && socket.emit('battle:result', { code, hostKey, winnerId: winner.id }),
-        onPlayAgain: () => {
-          view.destroy();
-          if (hostKey) socket.emit('host:reset', { code, hostKey });
-          location.href = hostKey ? `/host?room=${code}` : '/';
-        },
-      });
-    });
-  </script>
+  <script type="module" src="/game/src/lobby-battle.js"></script>
 </body>
 </html>

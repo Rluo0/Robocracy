@@ -32,7 +32,7 @@ npm run fake-players -- ROOMCODE 32
 | `/` | Host | Home → START → pick **Team Fight** (coming soon) or **Free For All** |
 | `/host?mode=ffa` | Host (projector) | Creates a room, shows the QR code, room code, and fighters joining live. Lock entries, remove players, FIGHT! |
 | `/join?room=CODE` | Phones | Name + "what are you fighting for", then live status: in lobby → fighting → won/lost |
-| `/battle?room=CODE` | Host | Standalone battle for a room. Normally the battle runs inside `/host`. |
+| `/battle?room=CODE` | Host | Richard's standalone battle page (`public/battle.html` + `game/src/lobby-battle.js`, supports Team Fight). Normally the battle runs inside `/host`. |
 
 Refreshing the projector or a phone rejoins the same lobby. Rooms live in memory and are wiped when the server restarts.
 
@@ -72,4 +72,6 @@ const hostKey = sessionStorage.getItem(`rr-host-${code}`);
 socket.emit('battle:result', { code, hostKey, winnerId }, (res) => { /* res.ok */ });
 ```
 
-**Another round** with the same players: `socket.emit('host:reset', { code, hostKey })`.
+**Another round** with the same players: `socket.emit('host:reset', { code, hostKey })`, then go to `/host?room=CODE` (the embedded battle in `/host` skips the navigation).
+
+The standalone page implements these calls in `game/src/lobby-battle.js`. Players only carry name, pick and colour, so each robot's chassis, weapon and looks are derived from the player id (`game/src/fighters.js`). Free For All gives one team per player; Team Fight groups players by what they picked.
