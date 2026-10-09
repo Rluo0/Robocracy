@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROBOT ROYALE</title>
+  <meta name="theme-color" content="#141216">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Home -->
+  <div id="home" class="home">
+    <div class="tape" aria-hidden="true">
+      <div class="tape-track" id="tape"></div>
+    </div>
+
+    <main class="hero">
+      <div class="hero-copy">
+        <h1 class="logo" translate="no">
+          <span class="l1">ROB<span class="glitch">O</span>T</span>
+          <span class="l2">ROYALE</span>
+        </h1>
+        <p class="hero-sub">Can't agree? Everyone picks. The robots fight. <mark>Winner decides.</mark></p>
+        <button id="start" class="btn mega wobble"><i class="ph-fill ph-lightning" aria-hidden="true"></i>START</button>
+      </div>
+
+      <div class="pile" id="pile">
+        <div class="vs">VS</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mode select -->
+  <main id="modes" class="modes-screen hidden">
+    <div class="modes-head">
+      <h2>Pick your <em>chaos</em></h2>
+      <button id="back" class="btn dark"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i>Back</button>
+    </div>
+
+    <div class="modes">
+      <button class="mode ffa" data-mode="ffa">
+        <div class="crowd" id="crowd"></div>
+        <i class="ph-fill ph-sword mode-icon" aria-hidden="true"></i>
+        <h3>Free for all</h3>
+        <p>Every robot for itself. One survives. One answer wins.</p>
+      </button>
+
+      <button class="mode teams" data-mode="teams" aria-describedby="teams-status">
+        <i class="ph-bold ph-users-three mode-icon" aria-hidden="true"></i>
+        <div class="construction" aria-hidden="true"><span>UNDER CONSTRUCTION</span></div>
+        <h3>Team fight</h3>
+        <p id="teams-status" aria-live="polite">Same pick, same team. Bigger teams hit harder.</p>
+      </button>
+    </div>
+  </main>
+
+  <script src="/js/fx.js"></script>
+  <script src="/js/sfx.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // Hazard tape copy, doubled so the loop is seamless.
+    const slogans = ['ROBOTS DECIDE', 'NO TAKEBACKS', 'PICK A SIDE', 'LAST BOT STANDING', 'ARGUMENTS SETTLED HERE'];
+    const run = slogans.map((s) => `<span>${s}<i class="ph-fill ph-lightning" aria-hidden="true"></i></span>`).join('');
+    $('tape').innerHTML = run + run;
+
+    // The hero pile: three robots, sized by CSS.
+    ['p1', 'p2', 'p3'].forEach((cls, i) => {
+      const bot = RR.robot(['#ff4f7b', '#4fb0ff', '#3ee6a8'][i], `hero-${i}`);
+      bot.classList.add(cls);
+      $('pile').prepend(bot);
+    });
+
+    // A crowd of tiny robots on the free-for-all card.
+    for (let i = 0; i < 9; i++) $('crowd').append(RR.robot(RR.ROBOT_COLORS[(i * 3) % 8], `crowd-${i}`));
+
+    // Clicking a robot makes it yelp. Because why not.
+    $('pile').addEventListener('click', (e) => {
+      const bot = e.target.closest('.bot');
+      if (!bot) return;
+      RR.sfx.unlock();
+      RR.sfx.boing();
+      RR.burstAt(bot, [getComputedStyle(bot).getPropertyValue('--c'), '#eeebe4']);
+    });
+
+    // Every so often a robot sprints across the screen.
+    setInterval(() => !document.hidden && RR.runner(), 9000);
+
+    $('start').addEventListener('click', (e) => {
+      RR.sfx.unlock();
+      RR.sfx.boom();
+      RR.shake(true);
+      RR.burst(e.clientX, e.clientY, ['#ffd23f', '#eeebe4', '#ff4f7b'], 26);
+      RR.slam("LET'S GO", { flash: true });
+      setTimeout(() => {
+        $('home').classList.add('hidden');
+        $('modes').classList.remove('hidden');
+        document.querySelector('.mode.ffa').focus({ preventScroll: true });
+      }, 420);
+    });
+
+    $('back').addEventListener('click', () => {
+      RR.sfx.blip();
+      $('modes').classList.add('hidden');
+      $('home').classList.remove('hidden');
+    });
+
+    document.querySelectorAll('.mode').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        RR.sfx.unlock();
+        if (card.dataset.mode === 'teams') {
+          RR.sfx.deny();
+          card.classList.remove('denied');
+          void card.offsetWidth;
+          card.classList.add('denied');
+          $('teams-status').textContent = 'Still in the workshop. Free for all is ready to rumble.';
+          return;
+        }
+        RR.sfx.siren();
+        RR.shake(true);
+        RR.burst(e.clientX, e.clientY, ['#ffd23f', '#141216', '#eeebe4'], 30);
+        RR.slam('FREE FOR ALL', { flash: true, tilt: 6 });
+        setTimeout(() => (location.href = `/host?mode=${card.dataset.mode}`), 900);
+      });
+    });
+  </script>
+</body>
+</html>
