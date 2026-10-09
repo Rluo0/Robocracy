@@ -1,6 +1,6 @@
 // Run with: node game/test/sim.test.mjs
 import assert from 'node:assert';
-import { simulate, CHASSIS, WEAPONS } from '../src/sim.js';
+import { simulate, createBattle, CHASSIS, WEAPONS } from '../src/sim.js';
 
 const chassis = Object.keys(CHASSIS), weapons = Object.keys(WEAPONS);
 
@@ -34,5 +34,21 @@ for (const [teams, perTeam] of [[2, 1], [2, 4], [3, 2], [6, 1], [6, 4]]) {
 
 assert.strictEqual(summary(simulate(config(7, 3, 3))), summary(simulate(config(7, 3, 3))), 'same seed, same battle');
 assert.notStrictEqual(summary(simulate(config(7, 3, 3))), summary(simulate(config(8, 3, 3))), 'different seed, different battle');
+
+const dressed = (cfg) => ({
+  ...cfg,
+  robots: cfg.robots.map((r, i) => ({ ...r, owner: `Owner ${i}`, cry: `Cry ${i}!`, eyes: 'googly', hat: 'crown', pattern: 'hazard', accent: '#123456' })),
+});
+for (const [teams, perTeam, seed] of [[3, 3, 7], [2, 4, 12], [6, 1, 3]])
+  assert.strictEqual(summary(simulate(config(seed, teams, perTeam))), summary(simulate(dressed(config(seed, teams, perTeam)))), 'cosmetics never change the outcome');
+
+const dressedBattle = createBattle(dressed(config(5, 2, 2)));
+dressedBattle.state.bots.forEach((b) => {
+  const src = dressedBattle.state.bots.indexOf(b);
+  assert.strictEqual(b.owner, `Owner ${src}`);
+  assert.strictEqual(b.cry, `Cry ${src}!`);
+  assert.deepStrictEqual([b.eyes, b.hat, b.pattern, b.accent], ['googly', 'crown', 'hazard', '#123456']);
+});
+assert.strictEqual(dressedBattle.state.bots[0].owner, 'Owner 0');
 
 console.log(`ok: ${runs} battles, avg ${(total / runs).toFixed(1)}s, longest ${longest.toFixed(1)}s, wins by team id`, wins);

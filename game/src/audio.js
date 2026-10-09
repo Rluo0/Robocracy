@@ -1,5 +1,6 @@
 // Tiny synthesized sound effects, no asset files.
 let ac = null, noise = null, lastBoom = 0;
+let voice = null; // held so the utterance isn't collected before it finishes
 
 function audio() {
   if (!ac) {
@@ -11,6 +12,55 @@ function audio() {
   if (ac.state === 'suspended') ac.resume();
   return ac;
 }
+
+// Theme music: the quiet intro loops in the menus, the drop lands when the fight starts.
+const INTRO = [0.3, 9.1], DROP = [9.3, 404], VOLUME = 0.25;
+let track = null, playing = null, master = null, mode = 'menu';
+
+function play() {
+  if (!track) return;
+  const a = audio(), now = a.currentTime;
+  if (playing) {
+    playing.gain.gain.setTargetAtTime(0, now, 0.015);
+    playing.src.stop(now + 0.1);
+  }
+  const src = a.createBufferSource(), gain = a.createGain();
+  src.buffer = track;
+  src.loop = true;
+  [src.loopStart, src.loopEnd] = mode === 'drop' ? DROP : INTRO;
+  src.connect(gain).connect(master);
+  src.start(now, src.loopStart);
+  playing = { src, gain };
+}
+
+export const music = {
+  async load(url) {
+    // Browsers keep audio suspended until the first click or key press.
+    for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, audio, { once: true });
+    const a = audio();
+    master = a.createGain();
+    master.gain.value = sfx.muted ? 0 : VOLUME;
+    master.connect(a.destination);
+    track = await a.decodeAudioData(await (await fetch(url)).arrayBuffer());
+    play();
+  },
+
+  menu() {
+    if (mode === 'menu') return;
+    mode = 'menu';
+    play();
+  },
+
+  drop() {
+    if (mode === 'drop') return;
+    mode = 'drop';
+    play();
+  },
+
+  mute(on) {
+    if (master) master.gain.value = on ? 0 : VOLUME;
+  },
+};
 
 export const sfx = {
   muted: false,
@@ -44,5 +94,22 @@ export const sfx = {
     osc.connect(gain).connect(a.destination);
     osc.start();
     osc.stop(a.currentTime + dur);
+  },
+
+  // Robot announcer voice. Returns false when nothing will be spoken.
+  say(text, onend) {
+    const synth = window.speechSynthesis;
+    if (this.muted || !synth) return false;
+    synth.cancel();
+    voice = new SpeechSynthesisUtterance(text);
+    voice.pitch = 0.1;
+    voice.rate = 1.5;
+    voice.onend = voice.onerror = onend;
+    synth.speak(voice);
+    return true;
+  },
+
+  hush() {
+    window.speechSynthesis?.cancel();
   },
 };
