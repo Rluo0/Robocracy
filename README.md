@@ -27,3 +27,7 @@ To make it work for real phones:
 4. Host the `game/` folder on a public URL (GitHub Pages, Netlify, Vercel). Phones can't reach `localhost`.
 
 The rules have no login, so anyone with the 4-letter room code can add or remove robots in that room.
+
+## Lobby server
+
+The projector lobby, QR join and live battle run on a Node server: `npm install && npm start`, then open <http://localhost:3000>. See `LOBBY.md`.

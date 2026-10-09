@@ -4,79 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ROBOT ROYALE Battle</title>
-  <meta name="theme-color" content="#141216">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/game/battle.css">
+  <style>
+    #problem { max-width: 520px; margin: 20vh auto; padding: 0 16px; text-align: center; }
+    #problem a { color: var(--accent); font-weight: 700; }
+  </style>
 </head>
 <body>
-  <!--
-    PLACEHOLDER: Richard's fight simulator replaces this page.
-    Contract (see LOBBY.md):
-      - Read the room: GET /api/rooms/:code  -> { code, mode, status, players: [{ id, name, pick, color }] }
-      - Report the winner: socket.emit('battle:result', { code, hostKey, winnerId })
-        hostKey is in sessionStorage under `rr-host-${code}`.
-      - Back to the lobby: socket.emit('host:reset', { code, hostKey }), then go to /host?room=CODE
-    Shared helpers you can reuse: RR.robot(color, id) draws a lobby robot, RR.sfx has synth sounds.
-  -->
-  <main id="battle" class="center-screen">
-    <h2>FIGHT!</h2>
-    <p class="placeholder-note"><i class="ph-bold ph-warning" aria-hidden="true"></i>Placeholder battle screen. Richard's simulator goes here.</p>
-    <div class="battle-row" id="players"></div>
-    <button class="btn" id="random"><i class="ph-fill ph-lightning" aria-hidden="true"></i>Random winner (test)</button>
-  </main>
+  <!-- The simulator lives in game/ (served at /game). Contract with the lobby: see LOBBY.md. -->
+  <div id="problem" hidden></div>
 
-  <main id="results" class="center-screen hidden">
-    <div class="status"><div class="stage" id="winner-bot"></div></div>
-    <div class="winner-name" id="winner-name"></div>
-    <p class="hero-sub" id="winner-pick" style="font-size: clamp(22px, 2.6vw, 34px)"></p>
-    <button class="btn mega" id="again"><i class="ph-fill ph-lightning" aria-hidden="true"></i>PLAY AGAIN</button>
-  </main>
+  <section id="battle" hidden>
+    <aside id="side">
+      <h2 id="title"></h2>
+      <div id="controls">
+        <button data-speed="1" class="on">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+        <button id="skip" title="Skip to the result">⏭</button>
+        <button id="mute" title="Sound">🔊</button>
+        <button id="quit" title="Back to the lobby">✕</button>
+        <span id="clock"></span>
+      </div>
+      <div id="hud"></div>
+    </aside>
+    <div id="stage">
+      <div id="wrap">
+        <canvas id="arena"></canvas>
+        <div id="feed"></div>
+        <div id="announcer" hidden>
+          <div class="abot"><i></i><i></i><b></b></div>
+          <p id="say"></p>
+        </div>
+        <div id="count"></div>
+        <div id="result" hidden></div>
+      </div>
+    </div>
+  </section>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/fx.js"></script>
-  <script src="/js/sfx.js"></script>
-  <script>
-    const socket = io();
-    const code = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
-    const hostKey = sessionStorage.getItem(`rr-host-${code}`);
-    const $ = (id) => document.getElementById(id);
-    let room = null;
-
-    fetch(`/api/rooms/${code}`).then((r) => r.json()).then((data) => {
-      room = data;
-      for (const p of room.players || []) {
-        const bot = RR.robot(p.color, p.id);
-        bot.classList.add('rattle');
-        bot.title = `${p.name}: ${p.pick}`;
-        $('players').append(bot);
-      }
-    });
-
-    $('random').addEventListener('click', () => {
-      if (!room?.players.length) return;
-      RR.sfx.unlock();
-      const winner = room.players[Math.floor(Math.random() * room.players.length)];
-      socket.emit('battle:result', { code, hostKey, winnerId: winner.id }, (res) => {
-        if (!res.ok) return ($('random').textContent = res.error);
-        const bot = RR.robot(winner.color, winner.id);
-        bot.classList.add('bob');
-        bot.style.setProperty('--s', '200px');
-        const crown = Object.assign(document.createElement('i'), { className: 'ph-fill ph-crown crown' });
-        $('winner-bot').replaceChildren(bot, crown);
-        $('winner-name').textContent = winner.name;
-        $('winner-pick').textContent = `${winner.pick} wins. The robots have spoken.`;
-        $('battle').classList.add('hidden');
-        $('results').classList.remove('hidden');
-        RR.sfx.win();
-        RR.shake(true);
-        RR.burstAt(bot, [winner.color, '#ffd23f', '#eeebe4']);
-      });
-    });
-
-    $('again').addEventListener('click', () => {
-      socket.emit('host:reset', { code, hostKey });
-      location.href = `/host?room=${code}`;
-    });
-  </script>
+  <script type="module" src="/game/src/lobby-battle.js"></script>
 </body>
 </html>

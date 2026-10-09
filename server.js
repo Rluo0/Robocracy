@@ -89,6 +89,8 @@ async function joinInfo(room) {
 }
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+// The battle simulator (game/) is a static ES-module app; battle.html loads it from /game.
+app.use('/game', express.static(path.join(__dirname, 'game')));
 
 // Fonts and icons are served locally so the demo still looks right on venue Wi-Fi with no internet.
 const vendor = {

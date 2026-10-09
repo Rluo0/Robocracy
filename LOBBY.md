@@ -24,7 +24,7 @@ PUBLIC_URL=https://your-tunnel.example npm start
 | `/` | Host | Home → START → pick **Team Fight** (coming soon) or **Free For All** |
 | `/host?mode=ffa` | Host (projector) | Creates a room, shows the QR code, room code, and fighters joining live. Lock entries, remove players, FIGHT! |
 | `/join?room=CODE` | Phones | Name + "what are you fighting for", then live status: in lobby → fighting → won/lost |
-| `/battle?room=CODE` | Host | **Placeholder for Richard's simulator** |
+| `/battle?room=CODE` | Host | The real robot battle (`game/` simulator): each player becomes a robot, fights, and the winner is reported to the phones. Code: `public/battle.html` + `game/src/lobby-battle.js`; players to robots in `game/src/fighters.js` |
 
 Refreshing the projector or a phone rejoins the same lobby. Rooms live in memory and are wiped when the server restarts.
 
@@ -56,4 +56,4 @@ socket.emit('battle:result', { code, hostKey, winnerId }, (res) => { /* res.ok *
 
 **Another round** with the same players: `socket.emit('host:reset', { code, hostKey })`, then go to `/host?room=CODE`.
 
-Replace `public/battle.html` however you like. Only the three calls above need to stay.
+The battle page implements these three calls in `game/src/lobby-battle.js` (the server serves `game/` at `/game`). Players only carry name, pick and colour, so each robot's chassis, weapon and looks are derived from the player id: the same player looks the same every round. Free For All gives one team per player; Team Fight groups players by what they picked. Only the three calls above need to stay if you replace the page.
