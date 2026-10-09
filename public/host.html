@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROBOT ROYALE Lobby</title>
+  <meta name="theme-color" content="#141216">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main id="loading" class="center-screen">
+    <div class="loading-bots" id="loading-bots"></div>
+    <h2>Building the arena…</h2>
+  </main>
+
+  <main id="error" class="center-screen hidden">
+    <h2>Arena not found</h2>
+    <p class="muted" id="error-text"></p>
+    <a class="btn" href="/"><i class="ph-bold ph-arrow-left" aria-hidden="true"></i>Back to start</a>
+  </main>
+
+  <div id="lobby" class="lobby hidden">
+    <aside class="tower">
+      <div class="scan-label"><i class="ph-bold ph-qr-code" aria-hidden="true"></i>Scan to fight</div>
+      <div class="qr-frame" id="qr-frame">
+        <img id="qr" alt="QR code to join this battle" width="640" height="640" fetchpriority="high">
+      </div>
+      <p class="join-url">or open <b id="join-url"></b></p>
+      <div class="code-tiles" id="room-code" aria-label="Room code" translate="no"></div>
+      <div class="code-caption">Room code</div>
+    </aside>
+
+    <section class="arena">
+      <header class="arena-head">
+        <h1>The arena</h1>
+        <span class="mode-tag" id="mode-pill"></span>
+        <div class="count" aria-live="polite"><b id="count">0</b><span>fighters</span></div>
+      </header>
+
+      <div class="floor" id="players"></div>
+
+      <footer class="controls">
+        <span class="hint" id="hint">Waiting for fighters</span>
+        <button class="btn dark icon-only" id="sound" aria-label="Mute music"><i class="ph-bold ph-speaker-high" aria-hidden="true"></i></button>
+        <button class="btn dark" id="lock"><i class="ph-bold ph-lock-open" aria-hidden="true"></i><span>Lock entries</span></button>
+        <button class="btn mega" id="start" disabled><i class="ph-fill ph-hand-fist" aria-hidden="true"></i>FIGHT!</button>
+      </footer>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/fx.js"></script>
+  <script src="/js/sfx.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>

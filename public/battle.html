@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROBOT ROYALE Battle</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/game/battle.css">
+  <style>
+    #problem { max-width: 520px; margin: 20vh auto; padding: 0 16px; text-align: center; }
+    #problem a { color: var(--accent); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <!-- The simulator lives in game/ (served at /game). Contract with the lobby: see LOBBY.md. -->
+  <div id="problem" hidden></div>
+
+  <section id="battle" hidden>
+    <aside id="side">
+      <h2 id="title"></h2>
+      <div id="controls">
+        <button data-speed="1" class="on">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+        <button id="skip" title="Skip to the result">⏭</button>
+        <button id="mute" title="Sound">🔊</button>
+        <button id="quit" title="Back to the lobby">✕</button>
+        <span id="clock"></span>
+      </div>
+      <div id="hud"></div>
+    </aside>
+    <div id="stage">
+      <div id="wrap">
+        <canvas id="arena"></canvas>
+        <div id="feed"></div>
+        <div id="announcer" hidden>
+          <div class="abot"><i></i><i></i><b></b></div>
+          <p id="say"></p>
+        </div>
+        <div id="count"></div>
+        <div id="result" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/game/src/lobby-battle.js"></script>
+</body>
+</html>
