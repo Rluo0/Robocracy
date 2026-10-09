@@ -47,8 +47,11 @@ function angDiff(a, b) {
   return d;
 }
 
-// config: { seed, teams: [{id, name, color}], robots: [{name, team, color, chassis, weapon}] }
+// config: { seed, teams: [{id, name, color}], robots: [{name, team, color, chassis, weapon,
+//   owner?, cry?, eyes?, hat?, pattern?, accent?, pid?}] }  (the last seven are cosmetic only)
+//   suddenAt?: seconds until lava starts closing in (default 45; big crowds want it earlier)
 export function createBattle(config) {
+  const suddenAt = config.suddenAt ?? SUDDEN_AT;
   const rng = makeRng(config.seed ?? 1);
   const rand = (a, b) => a + rng() * (b - a);
   const irand = (n) => Math.floor(rng() * n);
@@ -101,6 +104,7 @@ export function createBattle(config) {
     const b = {
       id: s.bots.length, name: r.name, team: team.id, teamColor: team.color,
       color: r.color || team.color, chassis: ch, weapon,
+      owner: r.owner || '', cry: r.cry || '', eyes: r.eyes, hat: r.hat, pattern: r.pattern, accent: r.accent, pid: r.pid,
       x: Math.max(TILE + 16, Math.min(W - TILE - 16, x)),
       y: Math.max(TILE + 16, Math.min(H - TILE - 16, y)),
       kx: 0, ky: 0, angle: Math.atan2(H / 2 - y, W / 2 - x), heading: 0,
@@ -584,7 +588,7 @@ export function createBattle(config) {
 
   // Sudden death: lava closes in from the walls so every battle ends.
   function stepLava() {
-    if (!s.sudden && s.t >= SUDDEN_AT) {
+    if (!s.sudden && s.t >= suddenAt) {
       s.sudden = true;
       s.lava = 1;
       nextLava = s.t + 2.5;
@@ -598,7 +602,7 @@ export function createBattle(config) {
         for (let cx = 1; cx < COLS - 1; cx++) if (layerOf(cx, cy) === layer) setTile(cx, cy, EMPTY);
       ev({ type: 'lava', layer });
     }
-    const dps = 18 + (s.t - SUDDEN_AT) * 1.2;
+    const dps = 18 + (s.t - suddenAt) * 1.2;
     for (const b of s.bots) {
       if (!b.alive || layerOf((b.x / TILE) | 0, (b.y / TILE) | 0) >= s.lava) continue;
       b.hp -= dps * DT;
