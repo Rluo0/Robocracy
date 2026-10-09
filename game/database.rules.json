@@ -1,0 +1,107 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        ".read": true,
+        "meta": {
+          ".write": true,
+          ".validate": "newData.hasChildren(['state', 'max'])",
+          "state": {
+            ".validate": "newData.isString() && (newData.val() == 'open' || newData.val() == 'battle' || newData.val() == 'done' || newData.val() == 'closed')"
+          },
+          "question": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "max": {
+            ".validate": "newData.isNumber()"
+          },
+          "ffa": {
+            ".validate": "newData.isBoolean()"
+          },
+          "options": {
+            "$i": {
+              ".validate": "$i.matches(/^[0-5]$/)",
+              "name": {
+                ".validate": "newData.isString() && newData.val().length <= 24"
+              },
+              "color": {
+                ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-fA-F]{6}$/)"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "result": {
+          ".write": true,
+          ".validate": "newData.hasChildren(['winner', 'total'])",
+          "winner": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "total": {
+            ".validate": "newData.isNumber()"
+          },
+          "places": {
+            "$p": {
+              ".validate": "newData.isNumber()"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "entries": {
+          "$pid": {
+            ".write": true,
+            ".validate": "$pid.matches(/^[a-z0-9]{8,32}$/) && newData.hasChildren(['name', 'owner', 'cry', 'color', 'accent', 'chassis', 'weapon', 'eyes', 'hat', 'pattern', 'option', 'at'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 18"
+            },
+            "owner": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "cry": {
+              ".validate": "newData.isString() && newData.val().length <= 32"
+            },
+            "color": {
+              ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-fA-F]{6}$/)"
+            },
+            "accent": {
+              ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-fA-F]{6}$/)"
+            },
+            "chassis": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "weapon": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "eyes": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "hat": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "pattern": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "option": {
+              ".validate": "newData.isNumber()"
+            },
+            "at": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
