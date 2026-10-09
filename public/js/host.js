@@ -18,7 +18,7 @@ for (let i = 0; i < 3; i++) {
 }
 
 function show(id) {
-  for (const s of ['loading', 'error', 'lobby']) $(s).classList.toggle('hidden', s !== id);
+  for (const s of ['loading', 'error', 'lobby', 'battle']) $(s).classList.toggle('hidden', s !== id);
 }
 
 function fail(message) {
@@ -40,7 +40,8 @@ function enterLobby(res) {
     $('qr-frame').append(peek);
   }
   render();
-  show('lobby');
+  // A reconnect mid-battle must not yank the projector back to the lobby.
+  if (!battleView) show('lobby');
 }
 
 function connectAsHost() {
@@ -106,6 +107,8 @@ function render() {
   const floor = $('players');
   const players = room.players;
   const ids = new Set(players.map((p) => p.id));
+  // Big crowds get smaller cards so 30+ robots fit on the projector.
+  floor.classList.toggle('dense', players.length > 16);
   const arrivals = [];
 
   for (const [id, card] of cards) {
@@ -219,9 +222,35 @@ $('start').addEventListener('click', () => {
     RR.shake(true);
     RR.slam('FIGHT!', { flash: true, tilt: -6 });
     document.querySelectorAll('.fighter .bot').forEach((b) => b.classList.replace('bob', 'rattle'));
-    setTimeout(() => (location.href = `/battle?room=${code}`), 1300);
+    setTimeout(startBattle, 1300);
   });
 });
+
+// The battle runs inside this page (not a new one) so the FIGHT! click keeps sound unlocked.
+let battleView = null;
+async function startBattle() {
+  try {
+    const { mountBattle } = await import('/js/battle.js');
+    show('battle');
+    battleView = mountBattle($('battle'), {
+      room,
+      onResult: (winner) => socket.emit('battle:result', { code, hostKey, winnerId: winner.id }),
+      onPlayAgain: () => {
+        battleView?.destroy();
+        battleView = null;
+        socket.emit('host:reset', { code, hostKey });
+        document.querySelectorAll('.fighter .bot').forEach((b) => b.classList.replace('rattle', 'bob'));
+        show('lobby');
+        if (!RR.sfx.isMuted()) RR.sfx.startMusic();
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    socket.emit('host:reset', { code, hostKey });
+    show('lobby');
+    $('hint').textContent = 'The battle failed to load. Check the console.';
+  }
+}
 
 socket.on('room:update', (update) => {
   room = update;

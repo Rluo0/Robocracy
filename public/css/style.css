@@ -400,7 +400,7 @@ i.ph-bold, i.ph-fill { line-height: 1; }
 .mode.teams.denied { animation: shake 0.45s; }
 
 /* ===================== Host lobby ===================== */
-.lobby { min-height: 100dvh; display: grid; grid-template-columns: minmax(320px, 440px) 1fr; }
+.lobby { height: 100dvh; display: grid; grid-template-columns: minmax(320px, 440px) 1fr; }
 
 .tower {
   position: relative;
@@ -414,6 +414,7 @@ i.ph-bold, i.ph-fill { line-height: 1; }
   padding: 36px 28px;
   box-shadow: 10px 0 0 #000;
   z-index: 2;
+  overflow-y: auto;
 }
 .tower::before, .tower::after { content: ''; position: absolute; left: 0; right: 0; height: 22px; background: var(--tape); }
 .tower::before { top: 0; }
@@ -421,7 +422,7 @@ i.ph-bold, i.ph-fill { line-height: 1; }
 
 .scan-label { font-family: var(--display); font-size: clamp(26px, 2.6vw, 38px); color: var(--hazard); rotate: -3deg; display: flex; align-items: center; gap: 12px; }
 .qr-frame { position: relative; width: 100%; max-width: 340px; padding: 14px; background: var(--tape); border: 4px solid var(--ink); box-shadow: var(--hard-lg); rotate: 1.5deg; }
-.qr-frame img { display: block; width: 100%; aspect-ratio: 1; background: #fff; border: 4px solid var(--ink); image-rendering: pixelated; }
+.qr-frame img { display: block; width: 100%; height: auto; aspect-ratio: 1; background: #fff; border: 4px solid var(--ink); image-rendering: pixelated; }
 .qr-frame .peek { position: absolute; --s: 64px; right: -26px; top: -46px; rotate: 18deg; }
 .join-url { font-weight: 700; font-size: 17px; color: var(--muted); text-align: center; word-break: break-all; }
 .join-url b { color: var(--bone); }
@@ -445,9 +446,9 @@ i.ph-bold, i.ph-fill { line-height: 1; }
 .code-tiles span:nth-child(4) { rotate: 7deg; translate: 0 -4px; }
 .code-caption { font-size: 14px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
 
-.arena { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 100dvh; }
+.arena { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; }
 .arena-head { display: flex; align-items: center; gap: 20px; padding: 28px clamp(16px, 3vw, 40px) 12px; flex-wrap: wrap; }
-.arena-head h1 { font-size: clamp(40px, 5vw, 76px); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 6px 6px 0 #000; }
+.arena-head h1 { font-size: clamp(36px, 4.2vw, 64px); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 6px 6px 0 #000; }
 .mode-tag { font-family: var(--display); font-size: 15px; background: var(--bone); color: var(--ink); padding: 6px 12px; border: 3px solid var(--ink); rotate: -4deg; box-shadow: 4px 4px 0 #000; }
 .count { margin-left: auto; display: flex; align-items: baseline; gap: 10px; }
 .count b { font-variant-numeric: tabular-nums; font-family: var(--display); font-weight: 400; font-size: clamp(64px, 8vw, 120px); line-height: 0.8; color: var(--hazard); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 6px 6px 0 #000; display: inline-block; }
@@ -597,8 +598,8 @@ i.ph-bold, i.ph-fill { line-height: 1; }
   .logo .l2 { margin-left: 0.15em; }
   .modes { grid-template-columns: 1fr; }
   .mode { min-height: 300px; }
-  .lobby { grid-template-columns: 1fr; }
-  .tower { border-right: 0; box-shadow: none; }
+  .lobby { grid-template-columns: 1fr; height: auto; min-height: 100dvh; }
+  .tower { border-right: 0; box-shadow: none; overflow: visible; }
   .arena { min-height: auto; }
   .controls { flex-wrap: wrap; }
   .controls .hint { flex-basis: 100%; }
@@ -609,3 +610,135 @@ i.ph-bold, i.ph-fill { line-height: 1; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .pupil { transform: none !important; }
 }
+
+/* ===================== Battle (Richard's simulator, embedded) ===================== */
+.bt { position: relative; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+.bt-stage { display: grid; place-items: center; padding: 20px; min-width: 0; }
+/* The canvas is 960x624; keep that ratio and fit the viewport height. */
+.bt-frame {
+  position: relative;
+  width: min(100%, calc((100dvh - 64px) * 960 / 624));
+  padding: 12px;
+  background: var(--tape);
+  border: 4px solid var(--ink);
+  box-shadow: var(--hard-lg);
+}
+/* The view crops the canvas so the showdown camera can zoom with a CSS transform. */
+.bt-view { position: relative; overflow: hidden; border: 4px solid var(--ink); background: #151821; aspect-ratio: 960 / 624; }
+.bt-canvas { display: block; width: 100%; height: auto; aspect-ratio: 960 / 624; transform-origin: 0 0; will-change: transform; }
+
+.bt-vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s; background: radial-gradient(ellipse at center, transparent 45%, rgba(170, 0, 30, 0.55) 100%); }
+.showdown .bt-vignette { opacity: 1; animation: pulse-red 0.8s ease-in-out infinite; }
+.slowmo .bt-vignette { animation-duration: 0.45s; }
+@keyframes pulse-red { 50% { opacity: 0.55; } }
+
+.bt-bars i { position: absolute; left: 0; right: 0; height: 11%; background: #000; transform: scaleY(0); transition: transform 0.6s var(--out); }
+.bt-bars i:first-child { top: 0; transform-origin: top; }
+.bt-bars i:last-child { bottom: 0; transform-origin: bottom; }
+.showdown .bt-bars i { transform: scaleY(1); }
+.slowmo .bt-bars i { transform: scaleY(1.5); }
+.slowmo .bt-canvas { filter: saturate(1.4) contrast(1.15); }
+.showdown .bt-head h2 { color: #ff4f7b; }
+.bt-feed { position: absolute; left: 26px; bottom: 24px; display: flex; flex-direction: column-reverse; gap: 4px; pointer-events: none; }
+.bt-feed div { background: rgba(20, 18, 22, 0.88); border-left: 4px solid var(--hazard); padding: 3px 10px; font-weight: 700; font-size: 15px; width: fit-content; animation: feed-in 0.25s var(--out); }
+@keyframes feed-in { from { transform: translateX(-20px); opacity: 0; } }
+
+.bt-rail { background: var(--ink-2); border-left: 4px solid var(--ink); box-shadow: -10px 0 0 #000; display: flex; flex-direction: column; min-height: 0; max-height: 100dvh; }
+.bt-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 18px 10px; }
+.bt-head h2 { font-size: 40px; color: var(--hazard); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 5px 5px 0 #000; rotate: -3deg; }
+.bt-alive { display: flex; align-items: baseline; gap: 6px; }
+.bt-alive b { font-family: var(--display); font-weight: 400; font-size: 44px; font-variant-numeric: tabular-nums; }
+.bt-alive span { color: var(--muted); font-weight: 700; }
+.bt-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 18px 14px; border-bottom: 4px solid var(--ink-3); }
+.bt-controls .btn { font-size: 14px; padding: 8px 12px; box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6); }
+.bt-controls .btn[aria-pressed='true'] { background: var(--hazard); color: var(--hazard-ink); border-color: var(--ink); }
+.bt-clock { margin-left: auto; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.bt-list { list-style: none; margin: 0; padding: 12px 14px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.bt-row { --c: var(--hazard); display: flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--ink); border: 3px solid var(--ink-3); border-left: 8px solid var(--c); transition: opacity 0.3s; }
+.bt-row .bot { --s: 36px; }
+.bt-row.out { opacity: 0.4; }
+.bt-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bt-name { font-family: var(--display); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-pick { font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-bar { height: 6px; background: var(--ink-3); overflow: hidden; }
+.bt-bar i { display: block; height: 100%; background: var(--c); transform-origin: left; transition: transform 0.15s linear; }
+
+.bt-result { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 24px 16px; background: rgba(20, 18, 22, 0.86); overflow-y: auto; }
+.bt-winner { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; animation: bump 0.5s var(--spring); }
+.bt-wins { font-size: clamp(22px, 2.6vw, 34px); font-weight: 800; }
+
+@media (max-width: 900px) {
+  .bt { grid-template-columns: 1fr; }
+  .bt-frame { width: 100%; }
+  .bt-rail { border-left: 0; box-shadow: none; max-height: none; }
+}
+
+/* Compact fighter list for big crowds (30+ players). */
+.bt-list.dense { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
+.bt-list.dense .bt-row { gap: 6px; padding: 4px 6px; border-width: 2px; border-left-width: 6px; }
+.bt-list.dense .bt-row .bot { --s: 24px; }
+.bt-list.dense .bt-name { font-size: 12px; }
+.bt-list.dense .bt-pick { display: none; }
+.bt-list.dense .bt-bar { height: 4px; }
+
+/* Winner podium: blocks rise 3rd, 2nd, then 1st; robots drop onto them. */
+.bt-winner { width: min(900px, 100%); }
+.bt-wins { font-size: clamp(40px, 6vw, 84px); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 7px 7px 0 #000; rotate: -2deg; }
+.bt-wins em { font-style: normal; color: var(--hazard); }
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 14px; width: 100%; max-width: 720px; margin-top: 36px; }
+.pod { --c: var(--hazard); display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.pod-bot { position: relative; display: grid; place-items: center; margin-bottom: -6px; z-index: 1; animation: pod-drop 0.55s var(--spring) backwards; }
+.pod-bot .bot { --s: 96px; }
+.pod-1 .pod-bot .bot { --s: 140px; }
+.pod-bot .crown { position: absolute; top: -34px; font-size: 64px; color: var(--hazard); rotate: -12deg; filter: drop-shadow(4px 4px 0 var(--ink)); }
+.pod-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 12px 8px;
+  background: var(--c);
+  color: var(--ink);
+  border: 4px solid var(--ink);
+  box-shadow: 8px 8px 0 #000;
+  transform-origin: bottom;
+  animation: pod-rise 0.5s var(--out) backwards;
+  min-width: 0;
+}
+.pod-block > * { flex: none; }
+.pod-1 .pod-block { height: 220px; }
+.pod-2 .pod-block { height: 178px; }
+.pod-3 .pod-block { height: 150px; }
+.pod-rank { font-family: var(--display); font-size: 48px; line-height: 1; }
+.pod-1 .pod-rank { font-size: 64px; }
+.pod-name { font-family: var(--display); font-size: 18px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-pick { font-weight: 800; font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-kos { font-weight: 700; font-size: 13px; opacity: 0.75; }
+.pod-3 .pod-block, .pod-3 .pod-bot { animation-delay: 0.2s; }
+.pod-3 .pod-bot { animation-delay: 0.45s; }
+.pod-2 .pod-block { animation-delay: 0.45s; }
+.pod-2 .pod-bot { animation-delay: 0.7s; }
+.pod-1 .pod-block { animation-delay: 0.75s; }
+.pod-1 .pod-bot { animation-delay: 1s; }
+@keyframes pod-rise { from { transform: scaleY(0); } }
+@keyframes pod-drop { 0% { transform: translateY(-80vh) rotate(-20deg); opacity: 0; } 1% { opacity: 1; } 70% { transform: translateY(0) scale(1.15, 0.8); } }
+
+@media (max-width: 640px) {
+  .pod-bot .bot { --s: 60px; }
+  .pod-1 .pod-bot .bot { --s: 84px; }
+  .pod-1 .pod-block { height: 180px; }
+  .pod-2 .pod-block { height: 150px; }
+  .pod-3 .pod-block { height: 132px; }
+  .pod-rank { font-size: 36px; }
+}
+
+/* Lobby with a big crowd. */
+.floor.dense { grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 12px 10px; }
+.floor.dense .fighter { padding: 8px 6px; gap: 4px; box-shadow: 4px 4px 0 #000; }
+.floor.dense .fighter .bot { --s: 40px; }
+.floor.dense .fighter .tag { padding: 2px 6px; border-width: 2px; }
+.floor.dense .fighter .name { font-size: 13px; }
+.floor.dense .fighter .pick { font-size: 12px; }

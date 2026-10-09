@@ -66,31 +66,72 @@ window.RR = window.RR || {};
     lose: () => [392, 330, 262, 196].forEach((f, i) => tone({ type: 'triangle', from: f, to: f * 0.97, dur: 0.22, vol: 0.3, at: i * 0.2 })),
   };
 
-  // Lobby beat: kick + hat + a square-wave bass riff, scheduled slightly ahead of time.
-  const BPM = 138;
-  const STEP = 60 / BPM / 4;
-  const BASS = [55, 0, 55, 0, 82.4, 0, 55, 73.4, 55, 0, 55, 0, 98, 0, 82.4, 73.4];
+  // Drama cues for the final showdown.
+  sfx.heartbeat = () => {
+    tone({ type: 'sine', from: 75, to: 38, dur: 0.16, vol: 0.9 });
+    tone({ type: 'sine', from: 65, to: 34, dur: 0.18, vol: 0.65, at: 0.2 });
+  };
+  sfx.showdown = () => {
+    noise({ dur: 1.2, vol: 0.5, cutoff: 1800 });
+    tone({ type: 'sawtooth', from: 220, to: 55, dur: 1.4, vol: 0.22 });
+    tone({ type: 'square', from: 110, to: 27.5, dur: 1.6, vol: 0.14, at: 0.05 });
+  };
+
+  // ---------- Music: looping tracks scheduled slightly ahead of time ----------
+  const C = [523.25, 659.25, 783.99];
+  const AM = [440, 523.25, 659.25];
+  const F = [349.23, 440, 523.25];
+  const G = [392, 493.88, 587.33];
+
+  const TRACKS = {
+    // Lobby: kick + hat + a square-wave bass riff.
+    lobby: {
+      bpm: 138,
+      step(i, at, len) {
+        const BASS = [55, 0, 55, 0, 82.4, 0, 55, 73.4, 55, 0, 55, 0, 98, 0, 82.4, 73.4];
+        if (i % 4 === 0) tone({ type: 'sine', from: 150, to: 40, dur: 0.14, vol: 0.55, at });
+        if (i % 4 === 2) noise({ dur: 0.04, vol: 0.12, at, cutoff: 9000 });
+        if (i % 8 === 4) noise({ dur: 0.12, vol: 0.2, at, cutoff: 3500 });
+        const f = BASS[i % BASS.length];
+        if (f) tone({ type: 'square', from: f * 2, dur: len * 0.9, vol: 0.09, at });
+      },
+    },
+    // Victory: bright C, Am, F, G arpeggios over a marching beat.
+    victory: {
+      bpm: 150,
+      step(i, at, len) {
+        const chord = [C, AM, F, G][Math.floor(i / 16) % 4];
+        const s = i % 16;
+        if (s % 4 === 0) tone({ type: 'sine', from: 160, to: 45, dur: 0.13, vol: 0.6, at });
+        if (s === 4 || s === 12) noise({ dur: 0.14, vol: 0.28, at, cutoff: 5000 });
+        if (s % 2 === 1) noise({ dur: 0.03, vol: 0.08, at, cutoff: 10000 });
+        if (s % 2 === 0) tone({ type: 'triangle', from: chord[0] / 4, dur: len * 1.8, vol: 0.3, at });
+        const arp = [0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0, 2, 2, 1][s];
+        const lift = s >= 12 ? 2 : 1;
+        tone({ type: 'square', from: chord[arp] * lift, dur: len * 0.8, vol: 0.05, at });
+      },
+    },
+  };
+
   let musicTimer = null;
+  let current = null;
   let step = 0;
   let nextAt = 0;
 
-  function scheduleStep(i, t) {
-    const at = t - ctx.currentTime;
-    if (i % 4 === 0) tone({ type: 'sine', from: 150, to: 40, dur: 0.14, vol: 0.55, at });
-    if (i % 4 === 2) noise({ dur: 0.04, vol: 0.12, at, cutoff: 9000 });
-    if (i % 8 === 4) noise({ dur: 0.12, vol: 0.2, at, cutoff: 3500 });
-    const f = BASS[i % BASS.length];
-    if (f) tone({ type: 'square', from: f * 2, dur: STEP * 0.9, vol: 0.09, at });
-  }
-
-  function startMusic() {
+  function startMusic(name = 'lobby', delay = 0.05) {
     unlock();
-    if (!ctx || musicTimer) return;
-    nextAt = ctx.currentTime + 0.05;
+    if (!ctx) return;
+    if (musicTimer && current === name) return;
+    stopMusic();
+    const track = TRACKS[name];
+    const len = 60 / track.bpm / 4;
+    current = name;
+    step = 0;
+    nextAt = ctx.currentTime + delay;
     musicTimer = setInterval(() => {
       while (nextAt < ctx.currentTime + 0.12) {
-        scheduleStep(step++, nextAt);
-        nextAt += STEP;
+        track.step(step++, nextAt - ctx.currentTime, len);
+        nextAt += len;
       }
     }, 25);
   }
@@ -98,7 +139,21 @@ window.RR = window.RR || {};
   function stopMusic() {
     clearInterval(musicTimer);
     musicTimer = null;
+    current = null;
   }
+
+  // Fanfare, then the victory loop kicks in underneath the winner screen.
+  sfx.victory = () => {
+    unlock();
+    if (!ctx) return;
+    stopMusic();
+    [[392, 0, 0.12], [523.25, 0.13, 0.12], [659.25, 0.26, 0.12], [783.99, 0.39, 0.45], [659.25, 0.86, 0.1], [1046.5, 0.98, 0.7]].forEach(([f, at, dur]) => {
+      tone({ type: 'square', from: f, dur, vol: 0.12, at });
+      tone({ type: 'triangle', from: f / 2, dur, vol: 0.25, at });
+    });
+    noise({ dur: 0.5, vol: 0.3, at: 0.98, cutoff: 6000 });
+    startMusic('victory', 1.75);
+  };
 
   function setMuted(value) {
     muted = value;
