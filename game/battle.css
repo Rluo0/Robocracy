@@ -1,4 +1,4 @@
-/* Shared by index.html and the lobby battle page (public/battle.html). */
+/* Shared by the lobby battle page (public/battle.html). */
 :root { --bg: #0b0d12; --panel: #151821; --line: #262b38; --text: #e8eaf0; --dim: #8b93a7; --accent: #fde047; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }

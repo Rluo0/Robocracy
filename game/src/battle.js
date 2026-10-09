@@ -1,4 +1,4 @@
-// Battle screen: countdown, fight, HUD and verdict card. Needs the #battle markup (see index.html).
+// Battle screen: countdown, fight, HUD and verdict card. Needs the #battle markup (see public/battle.html).
 // runBattle(config, { title, hooks, actions, onQuit }): actions are the verdict buttons, [{ label, primary?, run() }].
 import { createBattle, CHASSIS, WEAPONS, POWERUPS, DT } from './sim.js';
 import { createRenderer, drawRobot } from './render.js';

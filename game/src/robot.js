@@ -1,4 +1,4 @@
-// Robot data shared by the host shell and the phone page. No DOM, no side effects.
+// Robot data shared by the battle screen and the phone garage. No DOM, no side effects.
 import { CHASSIS, WEAPONS } from './sim.js';
 import { EYES, HATS, PATTERNS } from './render.js';
 

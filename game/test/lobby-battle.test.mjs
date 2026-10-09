@@ -1,6 +1,7 @@
 // Run with: node game/test/lobby-battle.test.mjs
 import assert from 'node:assert';
-import { simulate } from '../src/sim.js';
+import { simulate, CHASSIS, WEAPONS } from '../src/sim.js';
+import { EYES, HATS, PATTERNS } from '../src/render.js';
 import { buildConfig, winnerId } from '../src/fighters.js';
 
 const COLORS = ['#ff4f7b', '#ffd23f', '#3ee6a8', '#4fb0ff'];
@@ -38,6 +39,32 @@ assert.ok(buildConfig(null, 's').error);
 const odd = buildConfig(room('ffa', [{ id: 'a', name: '<b>x</b>', pick: 'p', color: 'red' }, { id: 'b', name: '', pick: '', color: null }]), 's').config;
 assert.match(odd.robots[0].color, /^#[0-9a-f]{6}$/i);
 assert.strictEqual(odd.robots[1].name, 'Unnamed');
+
+// custom robots: the player's own build is used as sent, owner is the player
+const mine = { name: 'Zap Cannon', owner: 'someone else', cry: 'Boom!', color: '#123456', accent: '#abcdef', chassis: 'tank', weapon: 'rail', eyes: 'visor', hat: 'crown', pattern: 'spots' };
+const withBot = (n, robot) => players(n).map((p) => ({ ...p, robot }));
+const c1 = buildConfig(room('ffa', withBot(2, mine)), 's').config.robots[0];
+assert.deepStrictEqual({ ...c1, pid: 0, team: 0, owner: '' }, { ...mine, pid: 0, team: 0, owner: '' });
+assert.strictEqual(c1.owner, 'Player 0');
+assert.strictEqual(c1.pid, players(2)[0].id);
+
+// junk robot fields are sanitized to valid values
+const junk = { name: 'N'.repeat(99), cry: '<script>alert(1)</script>', color: 'red', accent: 5, chassis: '__proto__', weapon: 'nope', eyes: 7, hat: null, pattern: {} };
+const j = buildConfig(room('ffa', withBot(2, junk)), 's').config.robots[0];
+assert.match(j.color, /^#[0-9a-f]{6}$/i);
+assert.match(j.accent, /^#[0-9a-f]{6}$/i);
+assert.ok(j.name.length <= 18 && j.cry.length <= 32);
+for (const [k, m] of [['chassis', CHASSIS], ['weapon', WEAPONS], ['eyes', EYES], ['hat', HATS], ['pattern', PATTERNS]]) assert.ok(Object.hasOwn(m, j[k]), `${k} valid`);
+
+// blank robot name falls back to the player name
+assert.strictEqual(buildConfig(room('ffa', withBot(2, { ...mine, name: '   ' })), 's').config.robots[1].name, 'Player 1');
+
+// 60 custom-robot players still finish a battle
+const big = players(60).map((p, i) => ({ ...p, robot: { ...mine, name: `Bot ${i}`, chassis: Object.keys(CHASSIS)[i % 3], weapon: Object.keys(WEAPONS)[i % 4] } }));
+const bigCfg = buildConfig(room('ffa', big), 'c1').config;
+const bigRes = simulate(bigCfg);
+assert.ok(big.find((p) => p.id === winnerId(bigRes)), 'custom 60: winner maps to a player');
+assert.ok(bigRes.duration < 150, 'custom 60 ends in time');
 
 // full battles, ffa and teams, up to the server's 60 players: winner maps back to a player
 for (const [mode, n] of [['ffa', 2], ['ffa', 13], ['ffa', 60], ['teams', 60]]) {

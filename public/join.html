@@ -34,6 +34,43 @@
       </form>
     </main>
 
+    <!-- Robot garage: shown right after a fresh join, and again from "Edit robot" -->
+    <main id="garage-screen" class="phone-main garage hidden">
+      <h1>Build your <em>robot</em></h1>
+      <div class="g-stage" id="garage-stage">
+        <canvas id="garage-cv" width="560" height="560" aria-label="Your robot"></canvas>
+      </div>
+
+      <div class="field">
+        <label for="g-name">Robot name</label>
+        <div class="g-row">
+          <input id="g-name" maxlength="18" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn dark icon-only" id="g-name-dice" aria-label="Random name"><i class="ph-bold ph-dice-five" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="g-cry">Battle cry</label>
+        <div class="g-row">
+          <input id="g-cry" maxlength="32" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn dark icon-only" id="g-cry-dice" aria-label="Random battle cry"><i class="ph-bold ph-dice-five" aria-hidden="true"></i></button>
+        </div>
+      </div>
+
+      <div class="g-colors">
+        <label for="g-color">Paint <input type="color" id="g-color"></label>
+        <label for="g-accent">Accent <input type="color" id="g-accent"></label>
+      </div>
+
+      <div class="g-group"><span class="g-label">Chassis</span><div class="chips" id="chips-chassis"></div><p class="blurb" id="blurb-chassis"></p></div>
+      <div class="g-group"><span class="g-label">Weapon</span><div class="chips" id="chips-weapon"></div><p class="blurb" id="blurb-weapon"></p></div>
+      <div class="g-group"><span class="g-label">Eyes</span><div class="chips" id="chips-eyes"></div></div>
+      <div class="g-group"><span class="g-label">Topper</span><div class="chips" id="chips-hat"></div></div>
+      <div class="g-group"><span class="g-label">Pattern</span><div class="chips" id="chips-pattern"></div></div>
+
+      <button type="button" class="btn dark" id="g-surprise"><i class="ph-bold ph-dice-five" aria-hidden="true"></i>Surprise me</button>
+      <button type="button" class="btn mega" id="g-done" style="font-size: 26px"><i class="ph-fill ph-check-fat" aria-hidden="true"></i>DONE</button>
+    </main>
+
     <!-- Status after joining -->
     <main id="status-screen" class="phone-main hidden">
       <div class="status">
@@ -42,9 +79,13 @@
         <p class="status-text" id="status-text" aria-live="polite">Eyes on the big screen.</p>
         <div class="me-tag" id="me">
           <span class="name" id="me-name"></span>
+          <span class="by" id="me-by"></span>
           <span class="pick" id="me-pick"></span>
         </div>
-        <button class="btn dark" id="leave"><i class="ph-bold ph-sign-out" aria-hidden="true"></i>Leave</button>
+        <div class="status-actions">
+          <button class="btn dark" id="edit-robot"><i class="ph-bold ph-wrench" aria-hidden="true"></i>Edit robot</button>
+          <button class="btn dark" id="leave"><i class="ph-bold ph-sign-out" aria-hidden="true"></i>Leave</button>
+        </div>
       </div>
     </main>
   </div>
@@ -52,6 +93,6 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/fx.js"></script>
   <script src="/js/sfx.js"></script>
-  <script src="/js/join.js"></script>
+  <script type="module" src="/js/join.js"></script>
 </body>
 </html>

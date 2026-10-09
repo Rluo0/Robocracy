@@ -1,4 +1,7 @@
 // Host (projector) lobby: creates or resumes a room, shows the QR code, and drops robots in as fighters join.
+import { sanitizeRobot } from '/game/src/robot.js';
+import { paintBot } from '/js/bot-canvas.js';
+
 const socket = io();
 const params = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);
@@ -67,6 +70,7 @@ function fighterCard(p) {
   card.style.setProperty('--c', p.color);
   card.style.setProperty('--tilt', `${(RR.hash(p.id) % 9) - 4}deg`);
 
+  // A placeholder CSS robot until the player's real one shows up (older servers never send one).
   const bot = RR.robot(p.color, p.id);
   bot.classList.add('bob');
   bot.style.animationDelay = `${-(RR.hash(p.id) % 13) / 10}s`;
@@ -77,6 +81,9 @@ function fighterCard(p) {
   name.className = 'name';
   tag.append(name);
 
+  const by = document.createElement('div');
+  by.className = 'by';
+
   const pick = document.createElement('div');
   pick.className = 'pick';
   pick.innerHTML = '<i class="ph-fill ph-lightning" aria-hidden="true"></i> <span></span>';
@@ -86,16 +93,38 @@ function fighterCard(p) {
   kick.innerHTML = '<i class="ph-bold ph-x" aria-hidden="true"></i>';
   kick.addEventListener('click', () => {
     RR.sfx.poof();
-    RR.burstAt(card, [p.color, '#eeebe4']);
+    RR.burstAt(card, [p.robot?.color || p.color, '#eeebe4']);
     socket.emit('host:kick', { code, hostKey, playerId: p.id });
   });
 
-  card.append(kick, bot, tag, pick);
+  card.append(kick, bot, tag, by, pick);
   return card;
 }
 
+// Swap the CSS placeholder for a canvas, then redraw it only when the robot actually changed.
+function updateRobot(card, p, robot) {
+  const sig = JSON.stringify(robot);
+  if (card.dataset.sig === sig) return;
+  card.dataset.sig = sig;
+  let cv = card.querySelector('.bot-cv');
+  if (!cv) {
+    cv = document.createElement('canvas');
+    cv.width = cv.height = 280;
+    cv.className = 'bot-cv bob';
+    cv.style.animationDelay = `${-(RR.hash(p.id) % 13) / 10}s`;
+    cv.setAttribute('aria-hidden', 'true');
+    card.querySelector('.bot').replaceWith(cv);
+  }
+  paintBot(cv, robot, -0.3, 0);
+}
+
 function updateCard(card, p) {
-  card.querySelector('.name').textContent = p.name;
+  const robot = sanitizeRobot(p.robot);
+  const color = robot?.color || p.color;
+  card.style.setProperty('--c', color);
+  if (robot) updateRobot(card, p, robot);
+  card.querySelector('.name').textContent = robot?.name || p.name;
+  card.querySelector('.by').textContent = robot ? `by ${p.name}` : '';
   card.querySelector('.pick span').textContent = p.pick;
   card.querySelector('.kick').setAttribute('aria-label', `Remove ${p.name}`);
   card.classList.toggle('offline', !p.connected);
@@ -152,7 +181,7 @@ function render() {
   arrivals.forEach(({ card, p }, i) => {
     setTimeout(() => {
       RR.sfx.boing();
-      RR.burstAt(card, [p.color, '#eeebe4', '#ffd23f']);
+      RR.burstAt(card, [p.robot?.color || p.color, '#eeebe4', '#ffd23f']);
       RR.shake();
     }, 380 + i * 120);
   });
@@ -218,7 +247,7 @@ $('start').addEventListener('click', () => {
     RR.sfx.siren();
     RR.shake(true);
     RR.slam('FIGHT!', { flash: true, tilt: -6 });
-    document.querySelectorAll('.fighter .bot').forEach((b) => b.classList.replace('bob', 'rattle'));
+    document.querySelectorAll('.fighter .bot, .fighter .bot-cv').forEach((b) => b.classList.replace('bob', 'rattle'));
     setTimeout(() => (location.href = `/battle?room=${code}`), 1300);
   });
 });

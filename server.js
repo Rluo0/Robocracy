@@ -22,11 +22,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Filled in before the server starts listening (see the bottom of the file).
+let sanitizeRobot, randomRobot;
+
 /** @type {Map<string, Room>} */
 const rooms = new Map();
 
 /**
- * @typedef {{ id: string, name: string, pick: string, color: string, connected: boolean, socketId: string|null }} Player
+ * @typedef {{ id: string, name: string, pick: string, color: string, connected: boolean, socketId: string|null, robot: object }} Player
  * @typedef {{ code: string, mode: 'ffa'|'teams', hostKey: string, status: 'lobby'|'battle'|'results',
  *             locked: boolean, players: Map<string, Player>, winnerId: string|null, createdAt: number }} Room
  */
@@ -65,8 +68,13 @@ function publicRoom(room) {
     status: room.status,
     locked: room.locked,
     winnerId: room.winnerId,
-    players: [...room.players.values()].map(({ id, name, pick, color, connected }) => ({ id, name, pick, color, connected })),
+    players: [...room.players.values()].map(publicPlayer),
   };
+}
+
+// Never includes socketId.
+function publicPlayer({ id, name, pick, color, connected, robot }) {
+  return { id, name, pick, color, connected, robot };
 }
 
 function broadcast(room) {
@@ -188,7 +196,7 @@ io.on('connection', (socket) => {
   });
 
   // ---------- Player ----------
-  socket.on('player:join', ({ code, name, pick, playerId } = {}, ack) => {
+  socket.on('player:join', ({ code, name, pick, playerId, robot } = {}, ack) => {
     const room = rooms.get(String(code || '').toUpperCase());
     if (!room) return ack?.({ ok: false, error: "That room code doesn't exist." });
 
@@ -200,7 +208,7 @@ io.on('connection', (socket) => {
       socket.data = { code: room.code, playerId: existing.id };
       socket.join(room.code);
       broadcast(room);
-      return ack?.({ ok: true, player: existing, room: publicRoom(room) });
+      return ack?.({ ok: true, player: publicPlayer(existing), room: publicRoom(room) });
     }
 
     if (room.locked || room.status !== 'lobby') return ack?.({ ok: false, error: 'Entries are closed for this battle.' });
@@ -213,11 +221,16 @@ io.on('connection', (socket) => {
     const taken = [...room.players.values()].some((p) => p.name.toLowerCase() === cleanName.toLowerCase());
     if (taken) return ack?.({ ok: false, error: 'That name is taken. Try another.' });
 
+    // Phones send the robot they built; fall back to a random one so every fighter has a robot.
+    const fallbackColor = ROBOT_COLORS[room.players.size % ROBOT_COLORS.length];
+    const built = robot && typeof robot === 'object' ? sanitizeRobot(robot, fallbackColor) : null;
+    const fighter = { ...(built || randomRobot(fallbackColor)), owner: cleanName };
     const player = {
       id: crypto.randomUUID(),
       name: cleanName,
       pick: cleanPick,
-      color: ROBOT_COLORS[room.players.size % ROBOT_COLORS.length],
+      color: fighter.color,
+      robot: fighter,
       connected: true,
       socketId: socket.id,
     };
@@ -225,7 +238,22 @@ io.on('connection', (socket) => {
     socket.data = { code: room.code, playerId: player.id };
     socket.join(room.code);
     broadcast(room);
-    ack?.({ ok: true, player, room: publicRoom(room) });
+    ack?.({ ok: true, player: publicPlayer(player), room: publicRoom(room) });
+  });
+
+  // The garage: a phone can rebuild its robot any time before the fight starts.
+  socket.on('player:robot', ({ robot } = {}, ack) => {
+    const { code, playerId } = socket.data || {};
+    const room = rooms.get(code);
+    const player = room?.players.get(playerId);
+    if (!player) return ack?.({ ok: false, error: 'Join a room first.' });
+    if (room.status !== 'lobby') return ack?.({ ok: false, error: 'The battle has already started.' });
+    const built = robot && typeof robot === 'object' ? sanitizeRobot(robot, player.color) : null;
+    if (!built) return ack?.({ ok: false, error: 'Send a robot to build.' });
+    player.robot = { ...built, owner: player.name };
+    player.color = player.robot.color;
+    broadcast(room);
+    ack?.({ ok: true, player: publicPlayer(player) });
   });
 
   socket.on('player:leave', () => {
@@ -254,7 +282,11 @@ setInterval(() => {
   for (const [code, room] of rooms) if (room.createdAt < cutoff) rooms.delete(code);
 }, 30 * 60 * 1000).unref();
 
-server.listen(PORT, () => {
-  console.log(`ROBOT ROYALE running on http://localhost:${PORT}`);
-  console.log(`Phones will join via ${publicBaseUrl()}  (set PUBLIC_URL to override)`);
+// game/ is an ES module package, so load the robot sanitizer before accepting connections.
+import('./game/src/robot.js').then((mod) => {
+  ({ sanitizeRobot, randomRobot } = mod);
+  server.listen(PORT, () => {
+    console.log(`ROBOT ROYALE running on http://localhost:${PORT}`);
+    console.log(`Phones will join via ${publicBaseUrl()}  (set PUBLIC_URL to override)`);
+  });
 });
