@@ -1,17 +1,25 @@
-// Lobby players -> battle config. No DOM, so it runs in Node tests. A player's robot is derived from their id,
-// so the same player gets the same robot every round and refresh.
+// Lobby players -> battle config. No DOM, so it runs in Node tests.
+// A player who built a robot (p.robot, from the phone garage) fights with exactly that robot, cleaned by sanitizeRobot.
+// Otherwise the robot is derived from their id as a fallback, so the same player gets the same robot every round.
 import { CHASSIS, WEAPONS } from './sim.js';
 import { EYES, HATS, PATTERNS } from './render.js';
-import { PALETTE, LIM, HEX, text } from './robot.js';
+import { PALETTE, LIM, HEX, text, sanitizeRobot } from './robot.js';
 import { hashSeed, makeRng } from './rng.js';
 
 export const CROWD = 12, CROWD_SUDDEN = 25;
 
 function robotFor(p, i) {
-  const rng = makeRng(hashSeed(String(p.id)));
-  const pick = (arr) => arr[Math.floor(rng() * arr.length)];
   const color = HEX.test(p.color) ? p.color : PALETTE[i % PALETTE.length];
   const name = text(p.name, LIM.name).trim() || 'Unnamed';
+  const custom = sanitizeRobot(p.robot, color);
+  if (custom) {
+    return {
+      ...custom, pid: p.id, name: custom.name.trim() || name,
+      owner: text(p.name, LIM.owner).trim(), cry: custom.cry.trim() || text(`For ${text(p.pick, LIM.opt)}!`, LIM.cry),
+    };
+  }
+  const rng = makeRng(hashSeed(String(p.id)));
+  const pick = (arr) => arr[Math.floor(rng() * arr.length)];
   return {
     pid: p.id, name, owner: '', cry: text(`For ${text(p.pick, LIM.opt)}!`, LIM.cry), color,
     accent: pick([...PALETTE.filter((c) => c !== color), '#ffffff', '#0b0d12']),

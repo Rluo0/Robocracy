@@ -42,7 +42,9 @@ When the host presses FIGHT!, the server sets the room to `status: "battle"`, lo
   "locked": true,
   "winnerId": null,
   "players": [
-    { "id": "uuid", "name": "Sparky", "pick": "Pizza", "color": "#ff3b6b", "connected": true }
+    { "id": "uuid", "name": "Sparky", "pick": "Pizza", "color": "#ff3b6b", "connected": true,
+      "robot": { "name": "Sparky", "owner": "Sam", "cry": "For Pizza!", "color": "#ff3b6b", "accent": "#ffffff",
+                 "chassis": "tank", "weapon": "blaster", "eyes": "twin", "hat": "none", "pattern": "plain" } }
   ]
 }
 ```
@@ -56,4 +58,12 @@ socket.emit('battle:result', { code, hostKey, winnerId }, (res) => { /* res.ok *
 
 **Another round** with the same players: `socket.emit('host:reset', { code, hostKey })`, then go to `/host?room=CODE`.
 
-The battle page implements these three calls in `game/src/lobby-battle.js` (the server serves `game/` at `/game`). Players only carry name, pick and colour, so each robot's chassis, weapon and looks are derived from the player id: the same player looks the same every round. Free For All gives one team per player; Team Fight groups players by what they picked. Only the three calls above need to stay if you replace the page.
+**Robots:** each player carries a `robot` (`name, owner, cry, color, accent, chassis, weapon, eyes, hat, pattern`), cleaned on the server by `sanitizeRobot()` in `game/src/robot.js`. Phones send it with `player:join` as `{ code, name, pick, playerId?, robot? }` (a random robot is used if it's missing), and can rebuild it any time before the fight with `player:robot`:
+
+```js
+socket.emit('player:robot', { robot }, (res) => { /* { ok: true, player } or { ok: false, error } */ });
+```
+
+It only works while the room is in the lobby; after FIGHT! it answers `{ ok: false, error: 'The battle has already started.' }`. The server forces `owner` to the player's name and keeps `player.color` equal to the robot's paint. Acks and `room:update` carry players as `{ id, name, pick, color, connected, robot }`.
+
+The battle page implements the three host calls in `game/src/lobby-battle.js` (the server serves `game/` at `/game`). Each player fights with their own `robot`; only a player with no robot gets a chassis, weapon and looks derived from their id (the same player looks the same every round). Free For All gives one team per player; Team Fight groups players by what they picked. Only the three calls above need to stay if you replace the page.

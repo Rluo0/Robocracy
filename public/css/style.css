@@ -18,6 +18,7 @@
   --hazard-deep: #c79a00;
   --hazard-ink: #1a1500;
   --metal: #77707f;
+  --pad: #5d5766; /* canvas backdrop: dark robot outlines and light weapons both stay readable on it */
 
   --display: 'Dela Gothic One', 'Arial Black', Impact, sans-serif;
   --body: 'Bricolage Grotesque Variable', 'Segoe UI', system-ui, sans-serif;
@@ -224,6 +225,10 @@ i.ph-bold, i.ph-fill { line-height: 1; }
 @keyframes bob { 50% { translate: 0 -10%; rotate: 4deg; } }
 .rattle { animation: rattle 0.18s linear infinite; }
 @keyframes rattle { 25% { translate: -3px 2px; rotate: -3deg; } 75% { translate: 3px -2px; rotate: 3deg; } }
+
+/* Real robots drawn by drawRobot onto a canvas (garage, status screen, host cards). */
+.bot-cv { display: block; background: var(--pad); border: 3px solid var(--ink); box-shadow: 4px 4px 0 #000; aspect-ratio: 1; }
+.bot-cv.dead { filter: saturate(0.25) brightness(0.8); rotate: 12deg; }
 
 /* ===================== FX layers ===================== */
 .shake { animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
@@ -485,10 +490,13 @@ i.ph-bold, i.ph-fill { line-height: 1; }
 .fighter .bot { --s: 74px; }
 .fighter .tag { background: var(--c); color: var(--ink); border: 3px solid var(--ink); padding: 4px 10px; max-width: 100%; text-align: center; box-shadow: 3px 3px 0 #000; }
 .fighter .name { font-family: var(--display); font-size: 17px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fighter .bot-cv { width: min(100%, 112px); height: auto; box-shadow: 3px 3px 0 #000; }
+.fighter .by { font-size: 13px; font-weight: 700; color: var(--bone); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: -4px; }
+.fighter .by:empty { display: none; }
 .fighter .pick { font-weight: 700; font-size: 14px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fighter .pick i { color: var(--c); }
 .fighter.offline { opacity: 0.4; }
-.fighter.offline .bot { filter: grayscale(1); }
+.fighter.offline .bot, .fighter.offline .bot-cv { filter: grayscale(1); }
 .fighter.settled { animation: none; }
 .fighter .kick {
   position: absolute;
@@ -577,11 +585,49 @@ i.ph-bold, i.ph-fill { line-height: 1; }
 .status .stage { position: relative; display: grid; place-items: center; height: 220px; }
 .status .stage .bot { --s: 170px; }
 .status .crown { position: absolute; top: -18px; font-size: 76px; color: var(--hazard); rotate: -12deg; filter: drop-shadow(4px 4px 0 var(--ink)); animation: bump 0.6s var(--spring); }
+.status .stage .bot-cv { width: 170px; height: 170px; }
 .status h1 { rotate: -2deg; }
+.status-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.status-actions .btn { font-size: 17px; padding: 10px 18px; min-height: 48px; }
 .status-text { font-size: 19px; font-weight: 600; max-width: 28ch; }
 .me-tag { background: var(--c, var(--hazard)); color: var(--ink); border: 3px solid var(--ink); box-shadow: 5px 5px 0 #000; padding: 8px 16px; rotate: 2deg; }
 .me-tag .name { font-family: var(--display); font-size: 22px; display: block; }
-.me-tag .pick { font-weight: 800; }
+.me-tag .name { overflow-wrap: anywhere; }
+.me-tag .by { display: block; font-size: 14px; font-weight: 700; }
+.me-tag .by:empty { display: none; }
+.me-tag .pick { font-weight: 800; overflow-wrap: anywhere; }
+
+/* ===================== Robot garage (phone) ===================== */
+.garage { justify-content: flex-start; gap: 20px; }
+.g-stage { position: relative; align-self: center; width: min(260px, 72vw); }
+.g-stage canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; background: var(--pad); border: 4px solid var(--ink); box-shadow: var(--hard); }
+.g-row { display: flex; gap: 10px; align-items: stretch; }
+.g-row input { flex: 1; min-width: 0; }
+.g-row .btn { flex: none; min-width: 56px; padding: 0 14px; }
+.g-colors { display: flex; gap: 16px; flex-wrap: wrap; }
+.g-colors label { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; }
+.g-colors input[type=color] { width: 64px; height: 48px; padding: 0; border: 3px solid var(--ink); border-radius: 0; background: var(--bone); box-shadow: 4px 4px 0 #000; cursor: pointer; }
+.g-group { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.g-label { font-weight: 800; font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  appearance: none;
+  min-height: 44px;
+  padding: 8px 14px;
+  font: 700 16px/1.1 var(--body);
+  background: var(--ink-3);
+  color: var(--bone);
+  border: 3px solid var(--metal);
+  border-radius: 0;
+  cursor: pointer;
+  transition: transform 0.1s var(--out), box-shadow 0.1s var(--out);
+}
+.chip:active { transform: translate(2px, 2px); }
+.chip.on { background: var(--hazard); color: var(--hazard-ink); border-color: var(--ink); box-shadow: 4px 4px 0 #000; }
+.blurb { font-size: 14px; color: var(--muted); min-height: 1.3em; }
+.garage .btn { width: 100%; }
+.garage .btn.icon-only { width: auto; }
+.garage .btn.mega { padding: 14px 20px; }
 
 /* ===================== Battle placeholder ===================== */
 .placeholder-note { display: flex; align-items: center; gap: 10px; border: 3px dashed var(--hazard); color: var(--hazard); padding: 12px 18px; font-weight: 700; max-width: 640px; }
